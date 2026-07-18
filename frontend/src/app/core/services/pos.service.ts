@@ -103,6 +103,10 @@ deleteProduct(id: number): Observable<Producto> {
   return this.http.get<BoletaResponse>(`${environment.apiUrl}/boleta/${idBoleta}/formal`);
 }
 
+  getDocumentoVenta(idVenta: number, tipo: 'boleta' | 'anulacion' = 'boleta'): Observable<BoletaResponse> {
+    return this.http.get<BoletaResponse>(`${environment.apiUrl}/venta/${idVenta}/documento?tipo=${tipo}`);
+  }
+
   openCaja(request: AbrirCajaRequest): Observable<Caja> {
     return this.http.post<Caja>(`${environment.apiUrl}/caja/abrir`, request);
   }

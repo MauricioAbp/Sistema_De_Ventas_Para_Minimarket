@@ -5,6 +5,8 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import edu.upn.proyecto.gruposowad.dtos.venta.AnularVentaRequest;
 import edu.upn.proyecto.gruposowad.models.AnulacionVenta;
 import edu.upn.proyecto.gruposowad.repositories.AnulacionVentaRepository;
@@ -13,16 +15,21 @@ import org.springframework.stereotype.Service;
 
 import edu.upn.proyecto.gruposowad.dtos.venta.VentaDetalleRequest;
 import edu.upn.proyecto.gruposowad.dtos.venta.VentaRequest;
+import edu.upn.proyecto.gruposowad.dtos.boleta.BoletaResponse;
+import edu.upn.proyecto.gruposowad.dtos.venta.ComprobanteAnulacionResponse;
 import edu.upn.proyecto.gruposowad.dtos.venta.VentaResponse;
 import edu.upn.proyecto.gruposowad.exceptions.BusinessException;
 import edu.upn.proyecto.gruposowad.models.Boleta;
 import edu.upn.proyecto.gruposowad.models.Caja;
+import edu.upn.proyecto.gruposowad.models.Empresa;
 import edu.upn.proyecto.gruposowad.models.DetalleVenta;
 import edu.upn.proyecto.gruposowad.models.MovimientoInventario;
 import edu.upn.proyecto.gruposowad.models.Producto;
 import edu.upn.proyecto.gruposowad.models.Usuario;
 import edu.upn.proyecto.gruposowad.models.Venta;
+import edu.upn.proyecto.gruposowad.repositories.BoletaRepository;
 import edu.upn.proyecto.gruposowad.repositories.CajaRepository;
+import edu.upn.proyecto.gruposowad.repositories.EmpresaRepository;
 import edu.upn.proyecto.gruposowad.repositories.MovimientoInventarioRepository;
 import edu.upn.proyecto.gruposowad.repositories.ProductoRepository;
 import edu.upn.proyecto.gruposowad.repositories.UsuarioRepository;
@@ -49,6 +56,12 @@ private AnulacionVentaRepository anulacionVentaRepository;
     @Autowired
     private MovimientoInventarioRepository movimientoInventarioRepository;
 
+    @Autowired
+    private BoletaRepository boletaRepository;
+
+    @Autowired
+    private EmpresaRepository empresaRepository;
+    
     @Autowired
     private BoletaService boletaService;
 
@@ -236,6 +249,97 @@ public Venta anular(Long idVenta, AnularVentaRequest request) {
     anulacionVentaRepository.save(anulacion);
 
     return ventaAnulada;
+}
+
+public ComprobanteAnulacionResponse generarComprobanteAnulacion(Venta venta, AnularVentaRequest request) {
+BigDecimal montoDevuelto = venta.getTotal() == null ? BigDecimal.ZERO : venta.getTotal();
+String numeroComprobante = "ANU-" + (venta.getNumero_venta() != null ? venta.getNumero_venta().replaceAll("[^0-9]", "") : venta.getId_venta());
+String descripcion = String.format("Devolución de dinero al cliente por anulación de la venta %s.", venta.getNumero_venta());
+List<String> lineas = venta.getDetalles() == null
+        ? List.of()
+        : venta.getDetalles().stream()
+                .map(detalle -> String.format("%d x %s - S/ %s",
+                        detalle.getCantidad() == null ? 0 : detalle.getCantidad(),
+                        detalle.getProducto() == null ? "Producto" : detalle.getProducto().getNombre_producto(),
+                        detalle.getSubtotal() == null ? "0.00" : detalle.getSubtotal().setScale(2, RoundingMode.HALF_UP).toPlainString()))
+                .collect(Collectors.toList());
+
+return new ComprobanteAnulacionResponse(
+        numeroComprobante,
+        LocalDateTime.now(),
+        montoDevuelto,
+        venta.getMetodo_pago(),
+        request.getMotivo(),
+        descripcion,
+        lineas
+);
+}
+
+public BoletaResponse obtenerDocumentoVenta(Long idVenta, String tipoDocumento) {
+Venta venta = ventaRepository.findById(idVenta)
+        .orElseThrow(() -> new BusinessException("Venta no encontrada"));
+
+String tipoNormalizado = tipoDocumento == null ? "boleta" : tipoDocumento.trim().toLowerCase(Locale.ROOT);
+if ("anulacion".equals(tipoNormalizado) || "anulacion-venta".equals(tipoNormalizado)) {
+    AnulacionVenta anulacionVenta = anulacionVentaRepository.findByVentaIdVenta(idVenta)
+            .orElseThrow(() -> new BusinessException("Comprobante de anulación no encontrado"));
+    return construirDocumentoAnulacion(venta, anulacionVenta);
+}
+
+Boleta boleta = boletaRepository.findByVentaIdVenta(idVenta)
+        .orElseThrow(() -> new BusinessException("Boleta no encontrada"));
+
+return boletaService.obtenerFormal(boleta.getId_boleta());
+}
+
+private BoletaResponse construirDocumentoAnulacion(Venta venta, AnulacionVenta anulacionVenta) {
+Empresa empresa = empresaRepository.findAll().stream().findFirst().orElse(null);
+BigDecimal montoDevuelto = venta.getTotal() == null ? BigDecimal.ZERO : venta.getTotal().setScale(2, RoundingMode.HALF_UP);
+String numeroDocumento = "ANU-" + (venta.getNumero_venta() == null ? venta.getId_venta() : venta.getNumero_venta().replaceAll("[^0-9]", ""));
+List<String> lineas = new ArrayList<>();
+if (venta.getDetalles() != null) {
+    lineas.addAll(venta.getDetalles().stream()
+            .map(detalle -> String.format("%d x %s - S/ %s",
+                    detalle.getCantidad() == null ? 0 : detalle.getCantidad(),
+                    detalle.getProducto() == null ? "Producto" : detalle.getProducto().getNombre_producto(),
+                    detalle.getSubtotal() == null ? "0.00" : detalle.getSubtotal().setScale(2, RoundingMode.HALF_UP).toPlainString()))
+            .collect(Collectors.toList()));
+}
+lineas.add(String.format("Monto devuelto: S/ %s", montoDevuelto.toPlainString()));
+if (anulacionVenta.getMotivo() != null && !anulacionVenta.getMotivo().isBlank()) {
+    lineas.add("Motivo: " + anulacionVenta.getMotivo());
+}
+
+String descripcion = String.format("Se devolvió S/ %s al cliente por la anulación de la venta %s.",
+        montoDevuelto.toPlainString(), venta.getNumero_venta());
+
+return new BoletaResponse(
+        empresa == null ? null : empresa.getRuc(),
+        empresa == null ? null : empresa.getRazon_social(),
+        empresa == null ? null : empresa.getNombre_comercial(),
+        empresa == null ? null : empresa.getDireccion(),
+        "ANU",
+        numeroDocumento,
+        anulacionVenta.getFecha_anulacion(),
+        obtenerCajero(venta),
+        lineas,
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        montoDevuelto,
+        venta.getMetodo_pago(),
+        "ANULACION",
+        montoDevuelto,
+        anulacionVenta.getMotivo(),
+        descripcion);
+}
+
+private String obtenerCajero(Venta venta) {
+if (venta == null || venta.getUsuario() == null) {
+    return "";
+}
+String nombre = venta.getUsuario().getNombre() == null ? "" : venta.getUsuario().getNombre();
+String apellido = venta.getUsuario().getApellido() == null ? "" : venta.getUsuario().getApellido();
+return (nombre + " " + apellido).trim();
 }
 
 public Venta buscarPorId(Long idVenta) {

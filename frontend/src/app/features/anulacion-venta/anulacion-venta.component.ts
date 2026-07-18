@@ -4,11 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { Venta } from '../../core/models/pos.models';
 import { AuthService } from '../../core/services/auth.service';
 import { PosService } from '../../core/services/pos.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 @Component({
   selector: 'app-anulacion-venta',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, DatePipe],
+  imports: [FormsModule, DecimalPipe, DatePipe, RouterLink],
   template: `
     <section class="page">
       <header class="page-header">
@@ -24,7 +24,18 @@ import { ActivatedRoute } from '@angular/router';
       }
 
       @if (success()) {
-        <p class="banner success">{{ success() }}</p>
+        <div class="banner success">
+          <p>{{ success() }}</p>
+          @if (venta(); as item) {
+            <a
+              class="document-link"
+              [routerLink]="['/app/ventas/boleta', item.id_venta]"
+              [queryParams]="{ ventaId: item.id_venta, tipo: 'anulacion' }"
+            >
+              Ver boleta de anulación
+            </a>
+          }
+        </div>
       }
 
       <section class="panel search-panel">
@@ -308,6 +319,14 @@ import { ActivatedRoute } from '@angular/router';
       border: 1px solid #a7f3d0;
     }
 
+    .document-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: #047857;
+      font-weight: 800;
+      text-decoration: underline;
+    }
+
     .actions {
       display: flex;
       justify-content: flex-end;
@@ -421,7 +440,7 @@ constructor(private pos: PosService, private auth: AuthService, private route: A
       next: (updated) => {
         this.venta.set(updated);
         this.motivo = '';
-        this.success.set('Venta anulada correctamente. El stock fue revertido.');
+        this.success.set('Venta anulada correctamente. Se generó la boleta de anulación con el detalle del dinero devuelto al cliente.');
         this.busy.set(false);
       },
       error: (err) => {

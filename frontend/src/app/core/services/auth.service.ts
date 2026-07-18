@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LoginRequest, LoginResponse } from '../models/auth.models';
+import { LoginRequest, LoginResponse, MfaRequest } from '../models/auth.models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -16,8 +16,49 @@ export class AuthService {
 
   login(request: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${environment.apiUrl}/usuario/login`, request).pipe(
-      tap((user) => localStorage.setItem(this.storageKey, JSON.stringify(user)))
+      tap((user) => {
+        if (user.token) {
+          localStorage.setItem(this.storageKey, JSON.stringify(user));
+          this.clearPendingMfa();
+        } else if (user.mfaRequired) {
+          this.setPendingMfa(user);
+        }
+      })
     );
+  }
+
+  verifyMfa(request: MfaRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${environment.apiUrl}/login/verify-mfa`, request).pipe(
+      tap((user) => {
+        if (user.token) {
+          localStorage.setItem(this.storageKey, JSON.stringify(user));
+          this.clearPendingMfa();
+        }
+      })
+    );
+  }
+
+  private readonly pendingMfaKey = 'minimarket_pending_mfa';
+
+  setPendingMfa(user: LoginResponse): void {
+    sessionStorage.setItem(this.pendingMfaKey, JSON.stringify(user));
+  }
+
+  getPendingMfa(): LoginResponse | null {
+    const raw = sessionStorage.getItem(this.pendingMfaKey);
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw) as LoginResponse;
+    } catch {
+      sessionStorage.removeItem(this.pendingMfaKey);
+      return null;
+    }
+  }
+
+  clearPendingMfa(): void {
+    sessionStorage.removeItem(this.pendingMfaKey);
   }
 
   currentUser(): LoginResponse | null {
@@ -41,6 +82,7 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem(this.storageKey);
+    this.clearPendingMfa();
   }
 
   loginErrorMessage(error: unknown): string {

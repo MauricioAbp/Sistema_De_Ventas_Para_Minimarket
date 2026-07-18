@@ -25,6 +25,10 @@ export class LoginComponent {
     this.auth.login({ username: this.username, password: this.password }).subscribe({
       next: (user) => {
         this.loading = false;
+        if (user.mfaRequired) {
+          void this.router.navigate(['/mfa']);
+          return;
+        }
         void this.router.navigate(['/app/dashboard']);
       },
       error: (err) => {

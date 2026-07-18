@@ -7,17 +7,27 @@ public class LoginResponse {
     private String apellido;
     private String username;
     private String rol;
+    private boolean mfaRequired;
 
-    public LoginResponse(Long idUsuario, String nombre, String apellido, String username, String rol,String token) {
+    public LoginResponse(Long idUsuario, String nombre, String apellido, String username, String rol, String token) {
+        this(idUsuario, nombre, apellido, username, rol, token, false);
+    }
+
+    public LoginResponse(Long idUsuario, String nombre, String apellido, String username, String rol, String token, boolean mfaRequired) {
         this.idUsuario = idUsuario;
         this.nombre = nombre;
         this.apellido = apellido;
         this.username = username;
         this.rol = rol;
-        this.token= token;
+        this.token = token;
+        this.mfaRequired = mfaRequired;
     }
+
     public String getToken(){
         return token;
+    }
+    public boolean isMfaRequired() {
+        return mfaRequired;
     }
 
     public Long getIdUsuario() {

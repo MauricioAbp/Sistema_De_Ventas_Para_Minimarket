@@ -31,7 +31,7 @@ import { PosService } from '../../core/services/pos.service';
 
           <section class="receipt-meta">
             <div>
-              <span>Boleta</span>
+              <span>{{ isAnulacionDocument() ? 'Boleta de anulación de venta' : 'Boleta' }}</span>
               <strong>{{ item.serie }}-{{ item.numero }}</strong>
             </div>
             <div>
@@ -58,6 +58,21 @@ import { PosService } from '../../core/services/pos.service';
             </ul>
           </section>
 
+          @if (isAnulacionDocument()) {
+            <section class="receipt-summary">
+              <h2>Resumen de devolución</h2>
+              <p>{{ item.descripcion || 'Se devolvió el importe al cliente por la anulación de esta venta.' }}</p>
+              <div class="summary-row">
+                <span>Monto devuelto</span>
+                <strong>S/ {{ ((item.montoDevuelto ?? item.total) || 0) | number: '1.2-2' }}</strong>
+              </div>
+              @if (item.motivo) {
+                <p><strong>Motivo:</strong> {{ item.motivo }}</p>
+              }
+              <p><strong>Estado:</strong> Anulación registrada</p>
+            </section>
+          }
+
           <section class="totals">
             <div>
               <span>Subtotal</span>
@@ -74,7 +89,7 @@ import { PosService } from '../../core/services/pos.service';
           </section>
 
           <footer>
-            <p>Gracias por su compra</p>
+            <p>{{ isAnulacionDocument() ? 'Documento emitido por anulación de venta' : 'Gracias por su compra' }}</p>
           </footer>
         </article>
       }
@@ -176,6 +191,23 @@ import { PosService } from '../../core/services/pos.service';
     .receipt-lines {
       display: grid;
       gap: 10px;
+    }
+
+    .receipt-summary {
+      display: grid;
+      gap: 10px;
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      padding: 14px;
+      background: #eff6ff;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      font-weight: 800;
+      color: #1d4ed8;
     }
 
     ul {
@@ -303,10 +335,27 @@ export class BoletaComponent implements OnInit {
   constructor(private route: ActivatedRoute, private pos: PosService) {}
 
   ngOnInit(): void {
+    const ventaId = Number(this.route.snapshot.queryParamMap.get('ventaId'));
+    const tipo = (this.route.snapshot.queryParamMap.get('tipo') ?? 'boleta').toLowerCase();
+
+    if (ventaId) {
+      this.pos.getDocumentoVenta(ventaId, tipo === 'anulacion' || tipo === 'anulacion-venta' ? 'anulacion' : 'boleta').subscribe({
+        next: (documento) => {
+          this.boleta.set(documento);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('No se pudo cargar el documento.');
+          this.loading.set(false);
+        }
+      });
+      return;
+    }
+
     const id = Number(this.route.snapshot.paramMap.get('id'));
 
     if (!id) {
-      this.error.set('Boleta no válida.');
+      this.error.set('Documento no válido.');
       this.loading.set(false);
       return;
     }
@@ -325,5 +374,9 @@ export class BoletaComponent implements OnInit {
 
   print(): void {
     window.print();
+  }
+
+  isAnulacionDocument(): boolean {
+    return this.boleta()?.tipoDocumento === 'ANULACION';
   }
 }

@@ -36,6 +36,11 @@ public class Usuario {
     @Column
     private Boolean activo;
     @Column
+    private Boolean mfa_enabled;
+    @JsonIgnore
+    @Column
+    private String mfa_secret;
+    @Column
     private LocalDateTime created_at;
     @PrePersist
     protected void onCreate() {
@@ -85,6 +90,18 @@ public class Usuario {
    }
    public void setActivo(Boolean activo) {
     this.activo = activo;
+   }
+   public Boolean getMfa_enabled() {
+    return mfa_enabled;
+   }
+   public void setMfa_enabled(Boolean mfa_enabled) {
+    this.mfa_enabled = mfa_enabled;
+   }
+   public String getMfa_secret() {
+    return mfa_secret;
+   }
+   public void setMfa_secret(String mfa_secret) {
+    this.mfa_secret = mfa_secret;
    }
    public LocalDateTime getCreated_at() {
     return created_at;

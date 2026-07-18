@@ -1,5 +1,8 @@
 package edu.upn.proyecto.gruposowad.services;
-import edu.upn.proyecto.gruposowad.security.JwtService;
+import dev.samstevens.totp.secret.DefaultSecretGenerator;
+import dev.samstevens.totp.secret.SecretGenerator;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -9,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import edu.upn.proyecto.gruposowad.dtos.auth.LoginRequest;
 import edu.upn.proyecto.gruposowad.dtos.auth.LoginResponse;
+import edu.upn.proyecto.gruposowad.dtos.microsoftautenticator.MfaSetupResponse;
 import edu.upn.proyecto.gruposowad.exceptions.BusinessException;
 import edu.upn.proyecto.gruposowad.models.Usuario;
 import edu.upn.proyecto.gruposowad.repositories.UsuarioRepository;
@@ -64,14 +68,55 @@ public class UsuarioService {
 
         String rol = usuario.getRol() != null ? usuario.getRol().getNombre_rol().trim() : "";
         String rolFrontend = toFrontendRole(rol);
+
+        if (Boolean.TRUE.equals(usuario.getMfa_enabled())) {
+            if (usuario.getMfa_secret() == null || usuario.getMfa_secret().isBlank()) {
+                throw new BusinessException("MFA no configurado correctamente");
+            }
+            return new LoginResponse(
+                usuario.getId_usuario(),
+                usuario.getNombre(),
+                usuario.getApellido(),
+                usuario.getUsername(),
+                rolFrontend,
+                null,
+                true
+            );
+        }
+
         String token = jwtService.generateToken(usuario, rolFrontend);
         return new LoginResponse(
-    usuario.getId_usuario(),
-    usuario.getNombre(),
-    usuario.getApellido(),
-    usuario.getUsername(),
-    rolFrontend,
-token);
+            usuario.getId_usuario(),
+            usuario.getNombre(),
+            usuario.getApellido(),
+            usuario.getUsername(),
+            rolFrontend,
+            token);
+    }
+
+    public MfaSetupResponse setupMfa(Long usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
+
+        if (usuario.getActivo() != null && !usuario.getActivo()) {
+            throw new BusinessException("El usuario se encuentra inactivo");
+        }
+
+        SecretGenerator secretGenerator = new DefaultSecretGenerator();
+        String secret = secretGenerator.generate();
+        usuario.setMfa_secret(secret);
+        usuario.setMfa_enabled(true);
+        usuarioRepository.save(usuario);
+
+        String label = String.format("Minimarket:%s", usuario.getUsername());
+        String issuer = "Minimarket";
+        String encodedLabel = URLEncoder.encode(label, StandardCharsets.UTF_8);
+        String encodedIssuer = URLEncoder.encode(issuer, StandardCharsets.UTF_8);
+        String otpAuthUrl = String.format(
+                "otpauth://totp/%s?secret=%s&issuer=%s&digits=6&period=30&algorithm=SHA1",
+                encodedLabel, secret, encodedIssuer);
+
+        return new MfaSetupResponse(secret, otpAuthUrl);
     }
 
     private String toFrontendRole(String rol) {

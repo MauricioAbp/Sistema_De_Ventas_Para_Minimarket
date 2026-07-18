@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import edu.upn.proyecto.gruposowad.dtos.venta.ComprobanteAnulacionResponse;
 import edu.upn.proyecto.gruposowad.models.DetalleVenta;
 import edu.upn.proyecto.gruposowad.models.Producto;
 import edu.upn.proyecto.gruposowad.models.Usuario;
@@ -22,8 +23,13 @@ public class VentaConsultaResponse {
     private LocalDateTime fecha_venta;
     private UsuarioResumen usuario;
     private List<DetalleResponse> detalles;
+    private ComprobanteAnulacionResponse comprobante_anulacion;
 
     public VentaConsultaResponse(Venta venta) {
+        this(venta, null);
+    }
+
+    public VentaConsultaResponse(Venta venta, ComprobanteAnulacionResponse comprobanteAnulacion) {
         this.id_venta = venta.getId_venta();
         this.numero_venta = venta.getNumero_venta();
         this.subtotal = venta.getSubtotal();
@@ -38,6 +44,7 @@ public class VentaConsultaResponse {
         this.detalles = venta.getDetalles() == null
                 ? List.of()
                 : venta.getDetalles().stream().map(DetalleResponse::new).toList();
+        this.comprobante_anulacion = comprobanteAnulacion;
     }
 
     public Long getId_venta() {
@@ -86,6 +93,10 @@ public class VentaConsultaResponse {
 
     public List<DetalleResponse> getDetalles() {
         return detalles;
+    }
+
+    public ComprobanteAnulacionResponse getComprobante_anulacion() {
+        return comprobante_anulacion;
     }
 
     public static class UsuarioResumen {

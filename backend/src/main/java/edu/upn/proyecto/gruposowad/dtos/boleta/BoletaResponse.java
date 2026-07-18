@@ -18,10 +18,22 @@ public class BoletaResponse {
     private BigDecimal igv;
     private BigDecimal total;
     private String metodoPago;
+    private String tipoDocumento;
+    private BigDecimal montoDevuelto;
+    private String motivo;
+    private String descripcion;
 
     public BoletaResponse(String ruc, String razonSocial, String nombreComercial, String direccion,
             String serie, String numero, LocalDateTime fechaEmision, String cajero, List<String> detalles,
             BigDecimal subtotal, BigDecimal igv, BigDecimal total, String metodoPago) {
+        this(ruc, razonSocial, nombreComercial, direccion, serie, numero, fechaEmision, cajero, detalles,
+                subtotal, igv, total, metodoPago, "BOLETA", null, null, null);
+    }
+
+    public BoletaResponse(String ruc, String razonSocial, String nombreComercial, String direccion,
+            String serie, String numero, LocalDateTime fechaEmision, String cajero, List<String> detalles,
+            BigDecimal subtotal, BigDecimal igv, BigDecimal total, String metodoPago,
+            String tipoDocumento, BigDecimal montoDevuelto, String motivo, String descripcion) {
         this.ruc = ruc;
         this.razonSocial = razonSocial;
         this.nombreComercial = nombreComercial;
@@ -35,6 +47,10 @@ public class BoletaResponse {
         this.igv = igv;
         this.total = total;
         this.metodoPago = metodoPago;
+        this.tipoDocumento = tipoDocumento;
+        this.montoDevuelto = montoDevuelto;
+        this.motivo = motivo;
+        this.descripcion = descripcion;
     }
 
     public String getRuc() {
@@ -87,5 +103,21 @@ public class BoletaResponse {
 
     public String getMetodoPago() {
         return metodoPago;
+    }
+
+    public String getTipoDocumento() {
+        return tipoDocumento;
+    }
+
+    public BigDecimal getMontoDevuelto() {
+        return montoDevuelto;
+    }
+
+    public String getMotivo() {
+        return motivo;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
     }
 }

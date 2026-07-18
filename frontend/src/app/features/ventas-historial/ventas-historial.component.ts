@@ -83,17 +83,22 @@ import { PosService } from '../../core/services/pos.service';
                     </td>
                     <td>
                       <div class="actions">
-                        <span class="btn-link disabled">Boleta</span>                          
-                        <a
-                        
-                          class="btn-link danger"
-                          [class.disabled]="venta.estado === 'ANULADA'"
-                          [routerLink]="['/app/ventas/anulacion']"
-                          [queryParams]="{ id: venta.id_venta }"
-                        >
-                          Anular
-                        </a>
-                      </div>
+                       <a
+                         class="btn-link"
+                         [routerLink]="['/app/ventas/boleta', venta.id_venta]"
+                         [queryParams]="{ ventaId: venta.id_venta, tipo: venta.estado === 'ANULADA' ? 'anulacion' : 'boleta' }"
+                       >
+                         {{ venta.estado === 'ANULADA' ? 'Ver anulación' : 'Ver boleta' }}
+                       </a>
+                       <a
+                         class="btn-link danger"
+                         [class.disabled]="venta.estado === 'ANULADA'"
+                         [routerLink]="['/app/ventas/anulacion']"
+                         [queryParams]="{ id: venta.id_venta }"
+                       >
+                         Anular
+                       </a>
+                     </div>
                     </td>
                   </tr>
                 }

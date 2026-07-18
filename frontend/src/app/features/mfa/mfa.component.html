@@ -1,0 +1,26 @@
+<main class="login-page">
+  <form class="login-panel" (ngSubmit)="submit()">
+    <p class="brand">Minimarket</p>
+    <h1>Verificación MFA</h1>
+    <p>Introduce el código que muestra Microsoft Authenticator para tu cuenta.</p>
+    <p *ngIf="username">Usuario: <strong>{{ username }}</strong></p>
+
+    <label>
+      Código MFA
+      <input
+        name="code"
+        [(ngModel)]="code"
+        type="text"
+        autocomplete="one-time-code"
+        maxlength="6"
+        inputmode="numeric"
+      >
+    </label>
+
+    <p class="error" *ngIf="error">{{ error }}</p>
+
+    <button type="submit" [disabled]="loading || !code">
+      {{ loading ? 'Verificando...' : 'Verificar código' }}
+    </button>
+  </form>
+</main>

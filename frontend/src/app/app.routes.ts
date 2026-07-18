@@ -2,11 +2,13 @@ import { Routes } from '@angular/router';
 import { guestGuard } from './core/guards/guest.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { LoginComponent } from './features/login/login.component';
+import { MfaComponent } from './features/mfa/mfa.component';
 import { PosComponent } from './features/pos/pos.component';
 import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
+  { path: 'mfa', component: MfaComponent, canActivate: [guestGuard] },
   {
     path: 'app',
     component: MainLayoutComponent,

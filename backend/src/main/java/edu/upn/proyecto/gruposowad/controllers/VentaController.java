@@ -1,4 +1,5 @@
 package edu.upn.proyecto.gruposowad.controllers;
+import edu.upn.proyecto.gruposowad.dtos.boleta.BoletaResponse;
 import edu.upn.proyecto.gruposowad.dtos.venta.VentaConsultaResponse;
 import java.util.ArrayList;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ import edu.upn.proyecto.gruposowad.dtos.venta.VentaHistorialResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 
 
@@ -43,8 +45,15 @@ public List<VentaHistorialResponse> listarTodos() {
 
      @PostMapping("/{idVenta}/anular")
 public VentaConsultaResponse anular(@PathVariable Long idVenta, @Valid @RequestBody AnularVentaRequest request) {
-    return new VentaConsultaResponse(this.ventaService.anular(idVenta, request));
+    var ventaAnulada = this.ventaService.anular(idVenta, request);
+    var comprobante = this.ventaService.generarComprobanteAnulacion(ventaAnulada, request);
+    return new VentaConsultaResponse(ventaAnulada, comprobante);
 }
+
+     @GetMapping("/{idVenta}/documento")
+     public BoletaResponse obtenerDocumento(@PathVariable Long idVenta, @RequestParam(defaultValue = "boleta") String tipo) {
+        return this.ventaService.obtenerDocumentoVenta(idVenta, tipo);
+     }
 
      @PostMapping("/pos")
      public VentaResponse registrarPos(@Valid @RequestBody VentaRequest request){

@@ -112,6 +112,10 @@ export interface BoletaResponse {
   igv: number;
   total: number;
   metodoPago?: string;
+  tipoDocumento?: string;
+  montoDevuelto?: number;
+  motivo?: string;
+  descripcion?: string;
 }
 
 export interface DashboardChartPoint {
@@ -149,6 +153,16 @@ export interface VentaDetalle {
   subtotal: number;
 }
 
+export interface ComprobanteAnulacion {
+  numero_comprobante: string;
+  fecha_emision: string;
+  monto_devuelto: number;
+  metodo_pago?: string;
+  motivo: string;
+  descripcion: string;
+  lineas?: string[];
+}
+
 export interface Venta {
   id_venta: number;
   numero_venta: string;
@@ -167,6 +181,7 @@ export interface Venta {
     username?: string;
   };
   detalles?: VentaDetalle[];
+  comprobante_anulacion?: ComprobanteAnulacion;
 }
 
 export interface AnularVentaRequest {
