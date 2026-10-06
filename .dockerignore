@@ -1,0 +1,10 @@
+.git
+.github
+**/.angular
+**/.idea
+**/.vscode
+**/node_modules
+**/dist
+**/target
+**/bin
+**/*.log

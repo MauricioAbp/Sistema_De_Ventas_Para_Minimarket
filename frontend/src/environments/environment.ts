@@ -1,4 +1,5 @@
 export const environment = {
-  apiUrl: 'http://localhost:8080'
+  // En produccion Angular y la API se sirven desde el mismo dominio.
+  apiUrl: ''
 };
 

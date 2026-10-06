@@ -1,9 +1,11 @@
 package edu.upn.proyecto.gruposowad.security;
 
 import java.util.List;
+import java.util.Arrays;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -15,6 +17,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
+
+    @Value("${app.cors.allowed-origins:http://localhost:4200}")
+    private String allowedOrigins;
+
     public SecurityConfig(JwtAuthFilter jwtAuthFilter){
         this.jwtAuthFilter = jwtAuthFilter;
     }
@@ -26,7 +32,10 @@ public class SecurityConfig {
                 .cors(cors->cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth->auth
-                    .requestMatchers("/usuario/login", "/login/verify-mfa", "/usuario/*/mfa/setup").permitAll()
+                    .requestMatchers("/", "/index.html", "/favicon.ico", "/health", "/assets/**", "/*.js", "/*.css").permitAll()
+                    .requestMatchers("/login", "/mfa", "/pos", "/admin", "/app/**").permitAll()
+                    .requestMatchers("/usuario/login", "/login/verify-mfa").permitAll()
+                    .requestMatchers("/usuario/*/mfa/setup").hasRole("ADMIN")
                     .requestMatchers("/venta/*/anular").hasRole("ADMIN")
                     .requestMatchers("/venta/*/documento").hasAnyRole("ADMIN","CAJERO")
                     .requestMatchers("/venta/pos","/caja/**","/boleta/**").hasAnyRole("ADMIN","CAJERO")
@@ -48,7 +57,10 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
+        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

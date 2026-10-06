@@ -33,6 +33,11 @@ public class DefaultUserBootstrap implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (defaultUsername == null || defaultUsername.isBlank()
+                || defaultPassword == null || defaultPassword.isBlank()) {
+            return;
+        }
+
         Optional<Usuario> existingUser = usuarioRepository.findByUsername(defaultUsername);
         if (existingUser.isPresent()) {
             return;
